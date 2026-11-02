@@ -1,0 +1,1472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="description" content="palera1n — checkm8-based jailbreak for iOS 15.0 – 17.4">
+<title>palera1n · checkm8 jailbreak</title>
+<style>
+/* ============================================================
+   DESIGN TOKENS
+   ============================================================ */
+:root {
+  color-scheme: dark;
+
+  --bg: #000;
+  --card: rgba(28, 28, 30, .72);
+  --card-solid: #1c1c1e;
+  --elev: #2c2c2e;
+  --track: rgba(120, 120, 128, .24);
+  --border: rgba(255, 255, 255, .10);
+  --border-strong: rgba(255, 255, 255, .18);
+
+  --text: #f5f5f7;
+  --text-2: #98989d;
+  --text-3: #636366;
+
+  --accent: #0a84ff;
+  --accent-2: #64d2ff;
+  --green: #30d158;
+  --orange: #ff9f0a;
+  --red: #ff453a;
+  --purple: #bf5af2;
+
+  --radius: 20px;
+  --radius-sm: 12px;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  --aurora-opacity: .55;
+  --shadow: 0 24px 48px -28px rgba(0, 0, 0, .9);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --bg: #f2f2f7;
+    --card: rgba(255, 255, 255, .78);
+    --card-solid: #fff;
+    --elev: #e9e9ee;
+    --track: rgba(120, 120, 128, .16);
+    --border: rgba(0, 0, 0, .08);
+    --border-strong: rgba(0, 0, 0, .14);
+    --text: #1c1c1e;
+    --text-2: #6c6c70;
+    --text-3: #8e8e93;
+    --aurora-opacity: .35;
+    --shadow: 0 24px 48px -30px rgba(0, 0, 0, .35);
+  }
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+  padding: clamp(12px, 2.5vw, 32px);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
+               Inter, Roboto, "Helvetica Neue", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Ambient background glow */
+.aurora {
+  position: fixed;
+  inset: -25%;
+  z-index: -1;
+  pointer-events: none;
+  opacity: var(--aurora-opacity);
+  background:
+    radial-gradient(38% 38% at 18% 8%,  rgba(10, 132, 255, .45), transparent 62%),
+    radial-gradient(32% 32% at 86% 16%, rgba(191, 90, 242, .35), transparent 62%),
+    radial-gradient(46% 46% at 52% 104%, rgba(48, 209, 88, .22), transparent 62%);
+  filter: blur(60px);
+  animation: drift 26s ease-in-out infinite alternate;
+}
+
+@keyframes drift {
+  0%   { transform: translate3d(-2%, -1%, 0) scale(1); }
+  50%  { transform: translate3d(2%, 2%, 0) scale(1.08); }
+  100% { transform: translate3d(-1%, 3%, 0) scale(1.02); }
+}
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+.app {
+  width: 100%;
+  max-width: 1020px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 880px) {
+  .grid { grid-template-columns: 390px minmax(0, 1fr); }
+  .col--right { display: flex; }
+}
+
+.col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+/* ============================================================
+   CARDS
+   ============================================================ */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, .05);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 4px 0;
+}
+
+.logo {
+  width: 58px;
+  height: 58px;
+  flex: none;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: linear-gradient(150deg, #4aa8ff 0%, #0a84ff 45%, #5e5ce6 100%);
+  box-shadow: 0 10px 26px -10px rgba(10, 132, 255, .9),
+              inset 0 1px 0 rgba(255, 255, 255, .4);
+}
+
+.logo svg { width: 30px; height: 30px; }
+
+.header__meta { min-width: 0; }
+
+.title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -.5px;
+  line-height: 1.1;
+}
+
+.subtitle {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  color: var(--text-2);
+  letter-spacing: .1px;
+}
+
+.badge {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border-radius: 99px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .3px;
+  color: var(--text-2);
+  background: var(--track);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 0 rgba(48, 209, 88, .7);
+  animation: pulse 2.4s ease-out infinite;
+}
+
+@keyframes pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(48, 209, 88, .55); }
+  70%  { box-shadow: 0 0 0 8px rgba(48, 209, 88, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(48, 209, 88, 0); }
+}
+
+/* ============================================================
+   SECTION LABELS
+   ============================================================ */
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .9px;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-label::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ============================================================
+   DEVICE INFO
+   ============================================================ */
+.info-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 9px 0;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
+
+.info-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.info-row:first-child { padding-top: 0; }
+
+.info-row dt { color: var(--text-2); flex: none; }
+
+.info-row dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mono { font-family: var(--mono); font-size: 12px; letter-spacing: -.2px; }
+
+.copy-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 6px;
+  line-height: 1;
+  transition: color .18s, background .18s;
+}
+
+.copy-btn:hover { color: var(--accent); background: var(--track); }
+.copy-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.state-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: rgba(255, 159, 10, .14);
+  color: var(--orange);
+  border: 1px solid rgba(255, 159, 10, .25);
+  transition: color .3s, background .3s, border-color .3s;
+}
+
+.state-pill[data-state="running"] {
+  background: rgba(10, 132, 255, .14);
+  color: var(--accent);
+  border-color: rgba(10, 132, 255, .3);
+}
+
+.state-pill[data-state="done"] {
+  background: rgba(48, 209, 88, .14);
+  color: var(--green);
+  border-color: rgba(48, 209, 88, .3);
+}
+
+.state-pill[data-state="aborted"] {
+  background: rgba(255, 69, 58, .14);
+  color: var(--red);
+  border-color: rgba(255, 69, 58, .3);
+}
+
+/* ============================================================
+   OPTIONS
+   ============================================================ */
+.segmented {
+  position: relative;
+  display: flex;
+  gap: 3px;
+  padding: 3px;
+  background: var(--track);
+  border-radius: 13px;
+  margin-bottom: 12px;
+}
+
+.segmented input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.segmented label {
+  flex: 1;
+  text-align: center;
+  padding: 9px 6px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+  cursor: pointer;
+  user-select: none;
+  transition: background .2s, color .2s, box-shadow .2s;
+}
+
+.segmented input:checked + label {
+  background: var(--card-solid);
+  color: var(--text);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .28);
+}
+
+.segmented input:focus-visible + label {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.option:last-of-type { border-bottom: 0; padding-bottom: 0; }
+.option:first-of-type { padding-top: 0; }
+
+.option__text { min-width: 0; }
+
+.option__title {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.option__hint {
+  display: block;
+  font-size: 11.5px;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+
+/* iOS-style switch */
+.switch {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: none;
+  width: 51px;
+  height: 31px;
+  border-radius: 99px;
+  background: var(--track);
+  position: relative;
+  cursor: pointer;
+  transition: background .28s cubic-bezier(.2, .8, .2, 1);
+}
+
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, .35);
+  transition: transform .28s cubic-bezier(.2, .8, .2, 1);
+}
+
+.switch:checked { background: var(--green); }
+.switch:checked::after { transform: translateX(20px); }
+
+.switch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.switch:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ============================================================
+   ACTIONS
+   ============================================================ */
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn {
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: 15px;
+  font-family: inherit;
+  font-size: 15.5px;
+  font-weight: 600;
+  letter-spacing: -.2px;
+  padding: 15px 18px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  transition: transform .12s ease, opacity .2s, background .2s, box-shadow .2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 3px; }
+.btn:active:not(:disabled) { transform: scale(.975); }
+.btn:disabled { cursor: not-allowed; }
+
+.btn--primary {
+  flex: 1;
+  color: #fff;
+  background: linear-gradient(180deg, #3d9dff, #0a84ff);
+  box-shadow: 0 10px 24px -12px rgba(10, 132, 255, .95),
+              inset 0 1px 0 rgba(255, 255, 255, .28);
+}
+
+.btn--primary:disabled {
+  background: var(--elev);
+  color: var(--text-3);
+  box-shadow: none;
+}
+
+.btn--primary[data-done="true"] {
+  background: linear-gradient(180deg, #4ade7f, #30d158);
+  color: #04220f;
+  box-shadow: 0 10px 24px -12px rgba(48, 209, 88, .9),
+              inset 0 1px 0 rgba(255, 255, 255, .35);
+}
+
+.btn--ghost {
+  flex: none;
+  padding: 15px 20px;
+  color: var(--text-2);
+  background: var(--track);
+  border-color: var(--border);
+}
+
+.btn--ghost:hover { color: var(--text); }
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, .28);
+  border-top-color: currentColor;
+  animation: spin .7s linear infinite;
+  flex: none;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============================================================
+   CONSOLE
+   ============================================================ */
+.console-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding: 14px;
+}
+
+.console-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.console-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -.1px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.console-tools {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+}
+
+.tool {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-3);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 9px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color .18s, background .18s, border-color .18s;
+  white-space: nowrap;
+}
+
+.tool:hover { color: var(--text); background: var(--track); }
+.tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.tool[aria-pressed="true"] { color: var(--accent); background: rgba(10, 132, 255, .12); }
+
+/* Progress */
+.progress-wrap { display: flex; flex-direction: column; gap: 7px; }
+
+.progress-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 11.5px;
+  color: var(--text-2);
+  gap: 12px;
+}
+
+.progress-head strong {
+  color: var(--text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.progress {
+  height: 6px;
+  border-radius: 99px;
+  background: var(--track);
+  overflow: hidden;
+}
+
+.progress__bar {
+  height: 100%;
+  width: 0%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #0a84ff, #64d2ff);
+  transition: width .4s cubic-bezier(.2, .8, .2, 1);
+}
+
+.progress__bar[data-tone="done"] {
+  background: linear-gradient(90deg, #30d158, #7ee89b);
+}
+
+.progress__bar[data-tone="halt"] {
+  background: linear-gradient(90deg, #ff453a, #ff9f0a);
+}
+
+/* DFU helper strip */
+.dfu {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 159, 10, .10);
+  border: 1px solid rgba(255, 159, 10, .3);
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  padding-block: 0;
+  transition: opacity .3s, max-height .35s ease, padding .35s ease;
+}
+
+.dfu[data-active="true"] {
+  opacity: 1;
+  max-height: 140px;
+  padding-block: 12px;
+}
+
+.dfu__ring {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  flex: none;
+}
+
+.dfu__ring svg { transform: rotate(-90deg); display: block; }
+
+.dfu__ring circle {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.dfu__ring .track { stroke: rgba(255, 159, 10, .22); }
+
+.dfu__ring .fill {
+  stroke: var(--orange);
+  stroke-dasharray: 113;
+  stroke-dashoffset: 113;
+  transition: stroke-dashoffset 1s linear;
+}
+
+.dfu__count {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--orange);
+}
+
+.dfu__text {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--orange);
+  line-height: 1.35;
+}
+
+.dfu__sub {
+  font-size: 11px;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+
+/* Log surface */
+.console {
+  flex: 1 1 auto;
+  min-height: 240px;
+  max-height: min(46vh, 420px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(8, 8, 10, .78);
+  border: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.65;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(140, 140, 150, .35) transparent;
+}
+
+@media (min-width: 880px) {
+  .console { max-height: none; }
+}
+
+@media (prefers-color-scheme: light) {
+  .console { background: rgba(250, 250, 252, .9); }
+}
+
+.console::-webkit-scrollbar { width: 8px; }
+.console::-webkit-scrollbar-thumb {
+  background: rgba(140, 140, 150, .35);
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.line {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+  animation: lineIn .22s ease-out both;
+}
+
+@keyframes lineIn {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.line__time {
+  color: var(--text-3);
+  opacity: .7;
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.line__tag {
+  font-weight: 700;
+  white-space: nowrap;
+  opacity: .95;
+}
+
+.line__msg {
+  min-width: 0;
+  word-break: break-word;
+  white-space: pre-wrap;
+  color: #d1d1d6;
+}
+
+@media (prefers-color-scheme: light) {
+  .line__msg { color: #3a3a3c; }
+}
+
+.line--step .line__tag, .line--step .line__msg { color: var(--text); }
+.line--info .line__tag, .line--info .line__msg { color: var(--text-2); }
+.line--ok   .line__tag, .line--ok   .line__msg { color: var(--green); }
+.line--warn .line__tag, .line--warn .line__msg { color: var(--orange); }
+.line--err  .line__tag, .line--err  .line__msg { color: var(--red); }
+
+/* ============================================================
+   TOASTS
+   ============================================================ */
+.toasts {
+  position: fixed;
+  left: 50%;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 50;
+  pointer-events: none;
+  width: min(92vw, 380px);
+}
+
+.toast {
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  color: var(--text);
+  background: rgba(44, 44, 46, .94);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 16px 34px -16px rgba(0, 0, 0, .9);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  animation: toastIn .28s cubic-bezier(.2, .9, .25, 1) both;
+}
+
+@media (prefers-color-scheme: light) {
+  .toast { background: rgba(255, 255, 255, .96); }
+}
+
+.toast[data-leaving="true"] {
+  animation: toastOut .24s ease-in both;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(14px) scale(.96); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes toastOut {
+  to { opacity: 0; transform: translateY(8px) scale(.97); }
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+.footer {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-3);
+  padding: 4px 0 8px;
+  line-height: 1.6;
+}
+
+kbd {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 1.5px 5px;
+  border-radius: 5px;
+  background: var(--track);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+}
+
+/* ============================================================
+   A11Y / MOTION
+   ============================================================ */
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+  .aurora { animation: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="aurora" aria-hidden="true"></div>
+
+<main class="app">
+
+  <!-- ══ HEADER ══ -->
+  <header class="header">
+    <div class="logo" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M13.6 2 4.8 13.4h5.6L9.2 22l9.9-11.9h-5.8L13.6 2Z"
+              fill="currentColor" stroke="currentColor"
+              stroke-width="1.2" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="header__meta">
+      <h1 class="title">palera1n</h1>
+      <p class="subtitle">iOS 15.0 – 17.4 · checkm8 (A11)</p>
+    </div>
+    <span class="badge" id="connBadge" title="usbmux connection">
+      <span class="dot" aria-hidden="true"></span>
+      <span id="connText">USB</span>
+    </span>
+  </header>
+
+  <div class="grid">
+
+    <!-- ══ LEFT COLUMN ══ -->
+    <div class="col col--left">
+
+      <!-- Device -->
+      <section class="card" aria-labelledby="devLabel">
+        <h2 class="section-label" id="devLabel">Device</h2>
+        <dl style="margin:0">
+          <div class="info-row">
+            <dt>Product</dt>
+            <dd id="devProduct">iPhone10,6</dd>
+          </div>
+          <div class="info-row">
+            <dt>Board</dt>
+            <dd class="mono" id="devBoard">D22AP</dd>
+          </div>
+          <div class="info-row">
+            <dt>SoC</dt>
+            <dd id="devChip">A11 Bionic · arm64e</dd>
+          </div>
+          <div class="info-row">
+            <dt>iOS</dt>
+            <dd id="devIos">16.7.8 (20H343)</dd>
+          </div>
+          <div class="info-row">
+            <dt>ECID</dt>
+            <dd>
+              <span class="mono" id="devEcid">0x3E84F1B9C20A</span>
+              <button class="copy-btn" id="copyEcid" title="Copy ECID" aria-label="Copy ECID">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <rect x="5.5" y="5.5" width="9" height="9" rx="2"
+                        stroke="currentColor" stroke-width="1.5"/>
+                  <path d="M10.5 3.5v-.5a2 2 0 0 0-2-2h-5a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h.5"
+                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </button>
+            </dd>
+          </div>
+          <div class="info-row">
+            <dt>State</dt>
+            <dd>
+              <span class="state-pill" id="statePill" data-state="idle" role="status">
+                DFU required
+              </span>
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <!-- Options -->
+      <section class="card" aria-labelledby="optLabel">
+        <h2 class="section-label" id="optLabel">Options</h2>
+
+        <div class="segmented" role="radiogroup" aria-label="Jailbreak mode">
+          <input type="radio" name="mode" id="modeRootless" value="rootless" checked>
+          <label for="modeRootless">Rootless</label>
+          <input type="radio" name="mode" id="modeRootful" value="rootful">
+          <label for="modeRootful">Rootful</label>
+        </div>
+
+        <label class="option" for="optSkip">
+          <span class="option__text">
+            <span class="option__title">Skip Setup&nbsp;Assistant</span>
+            <span class="option__hint">Bypass “Hello” screens after boot</span>
+          </span>
+          <input type="checkbox" class="switch" id="optSkip" checked>
+        </label>
+
+        <label class="option" for="optVerbose">
+          <span class="option__text">
+            <span class="option__title">Verbose boot</span>
+            <span class="option__hint">Stream kernel logs to console</span>
+          </span>
+          <input type="checkbox" class="switch" id="optVerbose">
+        </label>
+
+        <label class="option" for="optSafe">
+          <span class="option__text">
+            <span class="option__title">Safe mode fallback</span>
+            <span class="option__hint">Disable tweaks if boot loops</span>
+          </span>
+          <input type="checkbox" class="switch" id="optSafe" checked>
+        </label>
+      </section>
+
+      <!-- Actions -->
+      <div class="actions">
+        <button class="btn btn--primary" id="runBtn" type="button">
+          <span id="runBtnLabel">Start Jailbreak</span>
+        </button>
+        <button class="btn btn--ghost" id="cancelBtn" type="button" hidden>
+          Cancel
+        </button>
+      </div>
+    </div>
+
+    <!-- ══ RIGHT COLUMN ══ -->
+    <div class="col col--right">
+      <section class="card console-card" aria-labelledby="logLabel">
+
+        <div class="console-head">
+          <h2 class="console-title" id="logLabel">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <rect x="1.5" y="2.5" width="13" height="11" rx="2.5"
+                    stroke="currentColor" stroke-width="1.4"/>
+              <path d="M4.5 6.5 6.5 8l-2 1.5M8 10h3.5"
+                    stroke="currentColor" stroke-width="1.4"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Console
+          </h2>
+          <div class="console-tools">
+            <button class="tool" id="autoScrollBtn" type="button"
+                    aria-pressed="true" title="Toggle auto-scroll">Auto-scroll</button>
+            <button class="tool" id="copyLogBtn" type="button" title="Copy log to clipboard">Copy</button>
+            <button class="tool" id="saveLogBtn" type="button" title="Download log file">Save</button>
+            <button class="tool" id="clearLogBtn" type="button" title="Clear console">Clear</button>
+          </div>
+        </div>
+
+        <div class="progress-wrap">
+          <div class="progress-head">
+            <span id="phaseLabel">Idle — waiting for device</span>
+            <strong id="progressPct">0%</strong>
+          </div>
+          <div class="progress" role="progressbar" id="progressBar"
+               aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"
+               aria-label="Jailbreak progress">
+            <div class="progress__bar" id="progressFill"></div>
+          </div>
+        </div>
+
+        <!-- DFU helper -->
+        <div class="dfu" id="dfuStrip" data-active="false" aria-live="polite">
+          <div class="dfu__ring" aria-hidden="true">
+            <svg width="42" height="42" viewBox="0 0 42 42">
+              <circle class="track" cx="21" cy="21" r="18"/>
+              <circle class="fill" id="dfuRing" cx="21" cy="21" r="18"/>
+            </svg>
+            <span class="dfu__count" id="dfuCount">3</span>
+          </div>
+          <div>
+            <div class="dfu__text" id="dfuText">Hold Side + Volume Down</div>
+            <div class="dfu__sub" id="dfuSub">Then release Side while keeping Volume Down</div>
+          </div>
+        </div>
+
+        <div class="console" id="log" role="log" aria-live="polite" aria-relevant="additions"
+             aria-label="Jailbreak console output" tabindex="0"></div>
+      </section>
+    </div>
+  </div>
+
+  <p class="footer">
+    Simulated output for demonstration · Press <kbd>Esc</kbd> to abort ·
+    Not affiliated with Apple Inc.
+  </p>
+</main>
+
+<div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
+
+<script>
+(() => {
+  "use strict";
+
+  /* ==========================================================
+     CONSTANTS & STATE
+     ========================================================== */
+  const $ = (id) => document.getElementById(id);
+
+  const el = {
+    log:          $("log"),
+    runBtn:       $("runBtn"),
+    runBtnLabel:  $("runBtnLabel"),
+    cancelBtn:    $("cancelBtn"),
+    statePill:    $("statePill"),
+    progressFill: $("progressFill"),
+    progressBar:  $("progressBar"),
+    progressPct:  $("progressPct"),
+    phaseLabel:   $("phaseLabel"),
+    dfuStrip:     $("dfuStrip"),
+    dfuText:      $("dfuText"),
+    dfuSub:       $("dfuSub"),
+    dfuCount:     $("dfuCount"),
+    dfuRing:      $("dfuRing"),
+    autoScroll:   $("autoScrollBtn"),
+    toasts:       $("toasts"),
+    connText:     $("connText"),
+  };
+
+  const TAGS = { step: "[*]", info: "[i]", ok: "[+]", warn: "[!]", err: "[-]" };
+
+  const DEVICE = {
+    product: "iPhone10,6",
+    board:   "D22AP",
+    chip:    "A11 Bionic · arm64e",
+    ios:     "16.7.8 (20H343)",
+    ecid:    "0x3E84F1B9C20A",
+  };
+
+  /* The simulated pipeline. `dfu` shows the DFU helper strip. */
+  const PLAN = [
+    { lvl: "step", msg: "palera1n v2.1.0 (json bridge) starting…",                    d: 420, phase: "Initialising" },
+    { lvl: "step", msg: "Connecting to lockdownd service over usbmux…",              d: 560, phase: "Initialising" },
+    { lvl: "info", msg: `Product type: ${DEVICE.product} · board ${DEVICE.board}`,   d: 460, phase: "Identifying device" },
+    { lvl: "info", msg: `Firmware: ${DEVICE.ios} · ${DEVICE.chip}`,                  d: 400, phase: "Identifying device" },
+    { lvl: "info", msg: `ECID ${DEVICE.ecid} · APNonce acquired`,                    d: 380, phase: "Identifying device" },
+    { lvl: "step", msg: "Probing bootrom exploit vector (checkm8)…",                 d: 800, phase: "Exploit check" },
+    { lvl: "ok",   msg: "checkm8 vector present — device is vulnerable",             d: 520, phase: "Exploit check" },
+    { lvl: "step", msg: "Sending control transfer to device in normal mode…",        d: 620, phase: "Preparing DFU" },
+    { lvl: "warn", msg: "Device must be placed into DFU mode to continue.",
+      d: 3200, phase: "DFU mode",
+      dfu: { text: "Hold Side + Volume Down", sub: "Keep both buttons held for 3 seconds", secs: 3 } },
+    { lvl: "info", msg: "Release the Side button — keep holding Volume Down.",
+      d: 10000, phase: "DFU mode",
+      dfu: { text: "Keep holding Volume Down", sub: "Hold for 10 more seconds…", secs: 10 } },
+    { lvl: "ok",   msg: "DFU interface acquired (Apple Mobile Device DFU).",
+      d: 560, phase: "DFU mode", endDfu: true },
+    { lvl: "step", msg: "Exploiting SecureROM via checkm8…",                         d: 980, phase: "Exploiting" },
+    { lvl: "ok",   msg: "SecureROM pwned — heap sprayed, TTBR0 remapped",            d: 480, phase: "Exploiting" },
+    { lvl: "step", msg: "Uploading secondary payload (iBSS)…",                       d: 760, phase: "Uploading payloads" },
+    { lvl: "step", msg: "Executing payload vector from SRAM…",                       d: 680, phase: "Uploading payloads" },
+    { lvl: "step", msg: "Uploading iBEC and patching kernel structures…",            d: 880, phase: "Uploading payloads" },
+    { lvl: "info", msg: "Applying boot-args: -v keepsyms=1 debug=0x2014e",           d: 460, phase: "Booting" },
+    { lvl: "step", msg: "Booting kernelcache…",                                      d: 820, phase: "Booting" },
+    { lvl: "step", msg: "Establishing bind shell / kernel patch pipeline…",          d: 700, phase: "Patching" },
+    { lvl: "step", msg: "Remounting root filesystem read-write…",                    d: 600, phase: "Patching" },
+    { lvl: "step", msg: "Installing bootstrap & Sileo…",                             d: 700, phase: "Finalising" },
+    { lvl: "ok",   msg: "Done! Device is booting with a patched kernel.",            d: 200, phase: "Complete" },
+  ];
+
+  let state = {
+    running: false,
+    token: 0,
+    history: [],
+    autoScroll: true,
+    dfuTimer: null,
+  };
+
+  /* ==========================================================
+     UTILITIES
+     ========================================================== */
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  function timestamp() {
+    const d = new Date();
+    return [d.getHours(), d.getMinutes(), d.getSeconds()]
+      .map((n) => String(n).padStart(2, "0"))
+      .join(":");
+  }
+
+  function toast(message) {
+    const node = document.createElement("div");
+    node.className = "toast";
+    node.textContent = message;
+    el.toasts.appendChild(node);
+    setTimeout(() => {
+      node.dataset.leaving = "true";
+      setTimeout(() => node.remove(), 240);
+    }, 2400);
+  }
+
+  /* ==========================================================
+     RENDERING — DEVICE INFO
+     ========================================================== */
+  function renderDevice() {
+    $("devProduct").textContent = DEVICE.product;
+    $("devBoard").textContent   = DEVICE.board;
+    $("devChip").textContent    = DEVICE.chip;
+    $("devIos").textContent     = DEVICE.ios;
+    $("devEcid").textContent    = DEVICE.ecid;
+  }
+
+  /* ==========================================================
+     RENDERING — LOG
+     ========================================================== */
+  function appendLog({ lvl, msg, silent = false }) {
+    const line = document.createElement("div");
+    line.className = `line line--${lvl}`;
+
+    const time = document.createElement("span");
+    time.className = "line__time";
+    time.textContent = timestamp();
+
+    const tag = document.createElement("span");
+    tag.className = "line__tag";
+    tag.textContent = TAGS[lvl] || "[*]";
+
+    const text = document.createElement("span");
+    text.className = "line__msg";
+    text.textContent = msg;
+
+    line.append(time, tag, text);
+    el.log.appendChild(line);
+
+    if (!silent) {
+      state.history.push({ lvl, msg, at: new Date().toISOString() });
+    }
+
+    if (state.autoScroll) {
+      el.log.scrollTop = el.log.scrollHeight;
+    }
+    return line;
+  }
+
+  function clearLog() {
+    el.log.innerHTML = "";
+    state.history = [];
+  }
+
+  function logAsText() {
+    return state.history
+      .map((h) => `${h.at}  ${TAGS[h.lvl] || "[*]"}  ${h.msg}`)
+      .join("\n");
+  }
+
+  /* ==========================================================
+     PROGRESS
+     ========================================================== */
+  function setProgress(pct, phase, tone = "run") {
+    const clamped = Math.max(0, Math.min(100, Math.round(pct)));
+    el.progressFill.style.width = clamped + "%";
+    el.progressFill.dataset.tone = tone;
+    el.progressPct.textContent = clamped + "%";
+    el.progressBar.setAttribute("aria-valuenow", String(clamped));
+    if (phase) el.phaseLabel.textContent = phase;
+  }
+
+  /* ==========================================================
+     DFU HELPER STRIP
+     ========================================================== */
+  function showDfu({ text, sub, secs }) {
+    clearInterval(state.dfuTimer);
+    el.dfuText.textContent = text;
+    el.dfuSub.textContent = sub;
+    el.dfuStrip.dataset.active = "true";
+
+    let remaining = secs;
+    const total = secs;
+    const CIRC = 2 * Math.PI * 18; // r = 18
+
+    const paint = () => {
+      el.dfuCount.textContent = String(Math.max(remaining, 0));
+      const done = (total - Math.max(remaining, 0)) / total;
+      el.dfuRing.style.strokeDashoffset = String(CIRC * (1 - done));
+    };
+
+    paint();
+    state.dfuTimer = setInterval(() => {
+      remaining -= 1;
+      paint();
+      if (remaining <= 0) clearInterval(state.dfuTimer);
+    }, 1000);
+  }
+
+  function hideDfu() {
+    clearInterval(state.dfuTimer);
+    state.dfuTimer = null;
+    el.dfuStrip.dataset.active = "false";
+    el.dfuRing.style.strokeDashoffset = String(2 * Math.PI * 18);
+  }
+
+  /* ==========================================================
+     UI STATE
+     ========================================================== */
+  function setState(kind, label) {
+    el.statePill.dataset.state = kind;
+    el.statePill.textContent = label;
+  }
+
+  function setOptionsDisabled(disabled) {
+    document.querySelectorAll(
+      '.segmented input, .switch'
+    ).forEach((input) => { input.disabled = disabled; });
+  }
+
+  function setIdleButton(label) {
+    el.runBtn.disabled = false;
+    el.runBtn.dataset.done = "false";
+    el.runBtnLabel.textContent = label;
+    const spinner = el.runBtn.querySelector(".spinner");
+    if (spinner) spinner.remove();
+  }
+
+  function setBusyButton(label) {
+    el.runBtn.disabled = true;
+    el.runBtn.dataset.done = "false";
+    el.runBtnLabel.textContent = label;
+    if (!el.runBtn.querySelector(".spinner")) {
+      const sp = document.createElement("span");
+      sp.className = "spinner";
+      sp.setAttribute("aria-hidden", "true");
+      el.runBtn.prepend(sp);
+    }
+  }
+
+  function setDoneButton(label) {
+    el.runBtn.disabled = false;
+    el.runBtn.dataset.done = "true";
+    el.runBtnLabel.textContent = label;
+    const spinner = el.runBtn.querySelector(".spinner");
+    if (spinner) spinner.remove();
+  }
+
+  /* ==========================================================
+     THE RUNNER
+     ========================================================== */
+  async function run() {
+    if (state.running) return;
+
+    state.running = true;
+    const token = ++state.token;
+
+    clearLog();
+    hideDfu();
+    setOptionsDisabled(true);
+    setBusyButton("Working…");
+    el.cancelBtn.hidden = false;
+    setState("running", "Executing exploit");
+    setProgress(0, "Initialising", "run");
+
+    // Boot banner
+    appendLog({ lvl: "info", msg: `palera1n v2.1.0 · ${mode()} mode · options: ${optionSummary()}` });
+
+    await sleep(260);
+    if (token !== state.token) return;
+
+    for (let i = 0; i < PLAN.length; i++) {
+      const step = PLAN[i];
+
+      if (token !== state.token) return; // cancelled
+
+      if (step.dfu) showDfu(step.dfu);
+      if (step.endDfu) hideDfu();
+
+      appendLog(step);
+
+      const pct = ((i + 1) / PLAN.length) * 100;
+      setProgress(pct, step.phase, "run");
+
+      await sleep(step.d);
+      if (token !== state.token) return;
+    }
+
+    // ── Success ──
+    hideDfu();
+    setProgress(100, "Complete", "done");
+    setState("done", "Booted · jailbroken");
+    setDoneButton("Run Again");
+    setOptionsDisabled(false);
+    el.cancelBtn.hidden = true;
+    state.running = false;
+
+    appendLog({ lvl: "ok", msg: "Process execution complete. Enjoy your jailbreak." });
+    toast("✅ Jailbreak finished successfully");
+  }
+
+  function cancel(silent = false) {
+    if (!state.running) return;
+
+    state.token++;          // invalidate the running loop
+    state.running = false;
+
+    clearInterval(state.dfuTimer);
+    state.dfuTimer = null;
+    hideDfu();
+
+    setOptionsDisabled(false);
+    setIdleButton("Start Jailbreak");
+    el.cancelBtn.hidden = true;
+    setState("aborted", "Aborted");
+    setProgress(parseFloat(el.progressFill.style.width) || 0, "Aborted by user", "halt");
+
+    appendLog({ lvl: "err", msg: "Operation aborted by user." });
+    if (!silent) toast("⛔️ Jailbreak aborted");
+  }
+
+  function reset() {
+    cancel(true);
+    clearLog();
+    hideDfu();
+    setProgress(0, "Idle — waiting for device", "run");
+    setIdleButton("Start Jailbreak");
+    setState("idle", "DFU required");
+    el.cancelBtn.hidden = true;
+    appendLog({ lvl: "info", msg: "Waiting for connection over usbmux…" });
+    appendLog({ lvl: "info", msg: "Ready. Ensure the device is connected via USB." });
+  }
+
+  /* ==========================================================
+     OPTION HELPERS
+     ========================================================== */
+  const mode = () =>
+    document.querySelector('input[name="mode"]:checked').value;
+
+  function optionSummary() {
+    const parts = [];
+    if ($("optSkip").checked)    parts.push("skip-setup");
+    if ($("optVerbose").checked) parts.push("verbose");
+    if ($("optSafe").checked)    parts.push("safe-mode");
+    return parts.length ? parts.join(", ") : "none";
+  }
+
+  /* ==========================================================
+     EVENTS
+     ========================================================== */
+  el.runBtn.addEventListener("click", () => {
+    if (state.running) return;
+    run();
+  });
+
+  el.cancelBtn.addEventListener("click", () => cancel());
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && state.running) {
+      e.preventDefault();
+      cancel();
+    }
+  });
+
+  // Auto-scroll toggle
+  el.autoScroll.addEventListener("click", () => {
+    state.autoScroll = !state.autoScroll;
+    el.autoScroll.setAttribute("aria-pressed", String(state.autoScroll));
+    if (state.autoScroll) el.log.scrollTop = el.log.scrollHeight;
+    toast(state.autoScroll ? "Auto-scroll on" : "Auto-scroll off");
+  });
+
+  // Copy log
+  $("copyLogBtn").addEventListener("click", async () => {
+    if (!state.history.length) return toast("Nothing to copy");
+    const text = logAsText();
+    try {
+      await navigator.clipboard.writeText(text);
+      toast("📋 Console copied to clipboard");
+    } catch {
+      // Fallback for insecure contexts
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); toast("📋 Console copied"); }
+      catch { toast("Copy failed"); }
+      ta.remove();
+    }
+  });
+
+  // Save log
+  $("saveLogBtn").addEventListener("click", () => {
+    if (!state.history.length) return toast("Nothing to save");
+    const blob = new Blob([logAsText()], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `palera1n-${Date.now()}.log`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast("💾 Log saved");
+  });
+
+  // Clear log
+  $("clearLogBtn").addEventListener("click", () => {
+    clearLog();
+    appendLog({ lvl: "info", msg: "Console cleared." });
+    toast("Console cleared");
+  });
+
+  // Copy ECID
+  $("copyEcid").addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(DEVICE.ecid);
+      toast("ECID copied");
+    } catch {
+      toast(DEVICE.ecid);
+    }
+  });
+
+  // Persist options in localStorage (best effort)
+  const OPTION_IDS = ["optSkip", "optVerbose", "optSafe"];
+  try {
+    const saved = JSON.parse(localStorage.getItem("palera1n:opts") || "{}");
+    OPTION_IDS.forEach((id) => {
+      if (typeof saved[id] === "boolean") $(id).checked = saved[id];
+    });
+    const savedMode = localStorage.getItem("palera1n:mode");
+    if (savedMode === "rootful") $("modeRootful").checked = true;
+  } catch { /* ignore */ }
+
+  document.querySelectorAll(".switch").forEach((sw) => {
+    sw.addEventListener("change", () => {
+      try {
+        const data = {};
+        OPTION_IDS.forEach((id) => { data[id] = $(id).checked; });
+        localStorage.setItem("palera1n:opts", JSON.stringify(data));
+      } catch { /* ignore */ }
+    });
+  });
+
+  document.querySelectorAll('input[name="mode"]').forEach((radio) => {
+    radio.addEventListener("change", () => {
+      try { localStorage.setItem("palera1n:mode", mode()); } catch { /* ignore */ }
+      toast(mode() === "rootful" ? "Rootful mode selected" : "Rootless mode selected");
+    });
+  });
+
+  /* ==========================================================
+     BOOT
+     ========================================================== */
+  renderDevice();
+  reset();
+})();
+</script>
+</body>
+</html>
